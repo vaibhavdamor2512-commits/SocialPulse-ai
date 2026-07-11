@@ -20,6 +20,8 @@ import type {
   Notification,
   NotificationsResponse,
   Report,
+  ReportFormat,
+  ReportType,
   SentimentData,
   TokenResponse,
   TrendPrediction,
