@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
+import { authApi } from '@/lib/api';
+import { QUERY_KEYS } from '@/lib/constants';
 import { containerVariants, itemVariants } from '@/lib/motion';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -13,10 +16,32 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const qc = useQueryClient();
+
   const [name, setName] = useState(user?.name ?? '');
 
+  const updateMutation = useMutation({
+    mutationFn: (body: { name: string }) => authApi.updateMe(body),
+    onSuccess: (updated) => {
+      qc.setQueryData(QUERY_KEYS.me, updated);
+      toast.success('Profile updated successfully.');
+    },
+    onError: () => {
+      toast.error('Failed to save. Please try again.');
+    },
+  });
+
   const handleSave = () => {
-    toast.success('Settings saved (UI only — connect to PUT /auth/me to persist).');
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error('Name cannot be empty.');
+      return;
+    }
+    if (trimmed === user?.name) {
+      toast('No changes to save.');
+      return;
+    }
+    updateMutation.mutate({ name: trimmed });
   };
 
   return (
@@ -43,18 +68,43 @@ export default function SettingsPage() {
           </CardHeader>
           <CardBody className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-widest text-text-muted">Display name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+              <label className="text-[11px] uppercase tracking-widest text-text-muted">
+                Display name
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                disabled={updateMutation.isPending}
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-widest text-text-muted">Email</label>
-              <Input value={user?.email ?? ''} disabled className="opacity-60 cursor-not-allowed" />
+              <label className="text-[11px] uppercase tracking-widest text-text-muted">
+                Email
+              </label>
+              <Input
+                value={user?.email ?? ''}
+                disabled
+                className="opacity-60 cursor-not-allowed"
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-widest text-text-muted">Plan</label>
-              <Input value={user?.plan ?? 'free'} disabled className="opacity-60 cursor-not-allowed capitalize" />
+              <label className="text-[11px] uppercase tracking-widest text-text-muted">
+                Plan
+              </label>
+              <Input
+                value={user?.plan ?? 'free'}
+                disabled
+                className="opacity-60 cursor-not-allowed capitalize"
+              />
             </div>
-            <Button onClick={handleSave}>Save changes</Button>
+            <Button
+              onClick={handleSave}
+              loading={updateMutation.isPending}
+              disabled={updateMutation.isPending}
+            >
+              Save changes
+            </Button>
           </CardBody>
         </Card>
       </motion.div>
@@ -65,8 +115,14 @@ export default function SettingsPage() {
             <CardTitle className="text-red-400">Danger zone</CardTitle>
           </CardHeader>
           <CardBody>
-            <p className="text-xs text-text-muted mb-3">Signing out will clear your session and tokens.</p>
-            <Button variant="outline" onClick={logout} className="border-red-500/40 text-red-400 hover:bg-red-500/10">
+            <p className="text-xs text-text-muted mb-3">
+              Signing out will clear your session and tokens.
+            </p>
+            <Button
+              variant="outline"
+              onClick={logout}
+              className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+            >
               Sign out
             </Button>
           </CardBody>
