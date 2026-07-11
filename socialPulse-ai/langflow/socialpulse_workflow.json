@@ -1,0 +1,145 @@
+{
+  "id": "socialpulse-ai-flow",
+  "name": "SocialPulse AI Agent",
+  "description": "IBM Granite 13B Instruct agent with Watson NLP sentiment analysis, buffer memory, and social media tools. Used by Phase 3 /api/v1/assistant/chat endpoint.",
+  "version": "0.1.0",
+  "data": {
+    "nodes": [
+      {
+        "id": "chat_input",
+        "type": "ChatInput",
+        "position": { "x": 50, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "input_value": { "value": "" },
+              "should_store_message": { "value": true },
+              "sender": { "value": "User" },
+              "sender_name": { "value": "User" },
+              "session_id": { "value": "" }
+            },
+            "display_name": "Chat Input",
+            "description": "Receives the user message"
+          }
+        }
+      },
+      {
+        "id": "system_prompt",
+        "type": "Prompt",
+        "position": { "x": 50, "y": 400 },
+        "data": {
+          "node": {
+            "template": {
+              "template": {
+                "value": "You are SocialPulse AI, an expert social media strategist powered by IBM Granite. You help users:\n- Generate platform-specific content (Instagram, X/Twitter, LinkedIn, Facebook)\n- Analyze sentiment and engagement data\n- Plan marketing campaigns\n- Identify competitor strategies\n- Forecast trends\n\nAlways be concise, data-driven, and actionable. When generating content, tailor it to the specified platform's best practices, character limits, and audience expectations.\n\nCurrent platform context: {platform}\nContent type requested: {content_type}"
+              },
+              "platform": { "value": "general" },
+              "content_type": { "value": "general" }
+            },
+            "display_name": "System Prompt",
+            "description": "Social media context injected into every conversation"
+          }
+        }
+      },
+      {
+        "id": "granite_llm",
+        "type": "WatsonxAIModel",
+        "position": { "x": 400, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "model_id": { "value": "ibm/granite-13b-instruct-v2" },
+              "project_id": { "value": "{WATSONX_PROJECT_ID}" },
+              "url": { "value": "{WATSONX_URL}" },
+              "api_key": { "value": "{IBM_CLOUD_API_KEY}" },
+              "max_new_tokens": { "value": 1024 },
+              "temperature": { "value": 0.7 },
+              "top_p": { "value": 0.9 },
+              "decoding_method": { "value": "sample" }
+            },
+            "display_name": "IBM Granite 13B",
+            "description": "Core LLM — IBM Granite 13B Instruct v2 via watsonx.ai"
+          }
+        }
+      },
+      {
+        "id": "buffer_memory",
+        "type": "MemoryChatMessageHistory",
+        "position": { "x": 400, "y": 450 },
+        "data": {
+          "node": {
+            "template": {
+              "session_id": { "value": "{session_id}" },
+              "memory_key": { "value": "chat_history" },
+              "return_messages": { "value": true },
+              "max_token_limit": { "value": 2000 }
+            },
+            "display_name": "Buffer Memory",
+            "description": "Maintains per-session conversation context"
+          }
+        }
+      },
+      {
+        "id": "watson_nlp_tool",
+        "type": "PythonFunctionTool",
+        "position": { "x": 700, "y": 400 },
+        "data": {
+          "node": {
+            "template": {
+              "name": { "value": "watson_sentiment_analysis" },
+              "description": { "value": "Analyze the sentiment and emotions of social media text using IBM Watson NLP. Input: raw text string. Output: sentiment label (positive/neutral/negative), score (0-1), and detected emotions." },
+              "code": {
+                "value": "import httpx, os\ndef watson_sentiment_analysis(text: str) -> dict:\n    url = os.getenv('WATSON_NLP_URL') + '/v1/analyze'\n    headers = {'Content-Type': 'application/json'}\n    params = {'version': os.getenv('WATSON_NLP_VERSION', '2022-04-07')}\n    auth = ('apikey', os.getenv('WATSON_NLP_API_KEY', ''))\n    body = {\n        'text': text,\n        'features': {\n            'sentiment': {},\n            'emotion': {},\n            'keywords': {'limit': 10},\n            'entities': {'limit': 5}\n        }\n    }\n    resp = httpx.post(url, json=body, params=params, auth=auth, timeout=15)\n    resp.raise_for_status()\n    return resp.json()\n"
+              }
+            },
+            "display_name": "Watson NLP Tool",
+            "description": "Sentiment + emotion analysis via IBM Watson Natural Language Understanding"
+          }
+        }
+      },
+      {
+        "id": "agent_executor",
+        "type": "AgentExecutor",
+        "position": { "x": 700, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "agent_type": { "value": "zero-shot-react-description" },
+              "max_iterations": { "value": 5 },
+              "verbose": { "value": false },
+              "handle_parsing_errors": { "value": true }
+            },
+            "display_name": "Agent Executor",
+            "description": "Orchestrates Granite LLM with tools and memory for multi-step reasoning"
+          }
+        }
+      },
+      {
+        "id": "chat_output",
+        "type": "ChatOutput",
+        "position": { "x": 1000, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "input_value": { "value": "" },
+              "should_store_message": { "value": true },
+              "sender": { "value": "Machine" },
+              "sender_name": { "value": "SocialPulse AI" },
+              "session_id": { "value": "" }
+            },
+            "display_name": "Chat Output",
+            "description": "Returns the final AI response"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "chat_input",     "target": "agent_executor", "sourceHandle": "message",   "targetHandle": "input_message" },
+      { "id": "e2", "source": "system_prompt",   "target": "agent_executor", "sourceHandle": "prompt",    "targetHandle": "system_message" },
+      { "id": "e3", "source": "granite_llm",     "target": "agent_executor", "sourceHandle": "model",     "targetHandle": "llm" },
+      { "id": "e4", "source": "buffer_memory",   "target": "agent_executor", "sourceHandle": "memory",    "targetHandle": "memory" },
+      { "id": "e5", "source": "watson_nlp_tool", "target": "agent_executor", "sourceHandle": "tool",      "targetHandle": "tools" },
+      { "id": "e6", "source": "agent_executor",  "target": "chat_output",    "sourceHandle": "output",    "targetHandle": "input_value" }
+    ]
+  }
+}

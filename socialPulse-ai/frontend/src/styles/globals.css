@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base resets ─────────────────────────────────────────────────────────────*/
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── Scrollbar styling (dark theme) ─────────────────────────────────────────*/
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2535;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6172f3;
+}
+
+/* ── Selection colour ────────────────────────────────────────────────────────*/
+::selection {
+  background: rgba(97, 114, 243, 0.3);
+  color: #e5e7eb;
+}
+
+/* ── Typography utilities ────────────────────────────────────────────────────*/
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #6172f3, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #6172f3, #a855f7) 1;
+  }
+}
+
+/* ── Component defaults ──────────────────────────────────────────────────────*/
+@layer components {
+  .card {
+    @apply bg-base-surface border border-base-border rounded-card p-4;
+  }
+
+  .card-hover {
+    @apply transition-colors duration-200 hover:border-brand-indigo/40;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-chip text-xs font-semibold border;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           bg-brand-gradient text-white font-semibold text-sm
+           transition-opacity duration-150 hover:opacity-90
+           focus:outline-none focus:ring-2 focus:ring-brand-indigo/60;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           bg-transparent text-text-secondary font-medium text-sm border border-base-border
+           transition-colors duration-150 hover:border-brand-indigo/40 hover:text-white
+           focus:outline-none focus:ring-2 focus:ring-brand-indigo/40;
+  }
+
+  .input-base {
+    @apply w-full px-3 py-2 rounded-lg bg-base-sunken border border-base-border
+           text-text-primary text-sm placeholder-text-muted
+           focus:outline-none focus:border-brand-indigo/70 focus:ring-1 focus:ring-brand-indigo/40
+           transition-colors duration-150;
+  }
+}

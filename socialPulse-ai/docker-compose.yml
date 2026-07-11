@@ -1,0 +1,147 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  SocialPulse AI — Docker Compose
+#  Services: frontend · backend · mongo · redis · nginx
+# ══════════════════════════════════════════════════════════════════════════════
+version: '3.9'
+
+# ── Named volumes ──────────────────────────────────────────────────────────────
+volumes:
+  mongo_data:
+  redis_data:
+  reports_data:
+
+# ── Shared network ─────────────────────────────────────────────────────────────
+networks:
+  app_net:
+    driver: bridge
+
+services:
+
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: sp_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: socialpulse
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.4-alpine
+    container_name: sp_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sp_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGODB_URL: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    volumes:
+      - reports_data:/app/reports
+      # Development hot-reload: mount source over the image
+      - ./backend:/app:delegated
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Celery Worker ────────────────────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sp_celery
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGODB_URL: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    volumes:
+      - reports_data:/app/reports
+      - ./backend:/app:delegated
+    command: celery -A app.worker worker --loglevel=info --concurrency=2
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app_net
+
+  # ── Next.js Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-SocialPulse AI}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    container_name: sp_frontend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Nginx Reverse Proxy ───────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: sp_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app_net

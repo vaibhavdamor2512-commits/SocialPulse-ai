@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    /* ── Language & environment ───────────────────────────────────────────── */
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+
+    /* ── Strict type checking ─────────────────────────────────────────────── */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+
+    /* ── Module resolution ────────────────────────────────────────────────── */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+
+    /* ── JSX ─────────────────────────────────────────────────────────────── */
+    "jsx": "preserve",
+
+    /* ── Output ──────────────────────────────────────────────────────────── */
+    "incremental": true,
+    "noEmit": true,
+
+    /* ── Path aliases ─────────────────────────────────────────────────────── */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/store/*": ["./src/store/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/styles/*": ["./src/styles/*"]
+    },
+
+    /* ── Next.js plugin ──────────────────────────────────────────────────── */
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

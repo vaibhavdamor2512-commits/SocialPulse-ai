@@ -1,0 +1,404 @@
+"""
+app/routers/reports.py
+───────────────────────
+Report generation and export endpoints:
+  GET  /reports/           — list generated reports
+  POST /reports/generate   — generate a new report (PDF / Excel / CSV)
+  GET  /reports/{id}/download — download a generated report file
+  DELETE /reports/{id}     — delete a report
+"""
+
+import csv
+import io
+import logging
+import os
+import uuid
+from datetime import datetime, timezone
+from typing import Annotated, Any, Dict, List, Optional
+
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel, Field
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.deps import get_active_user
+from app.models.user import UserInDB
+from app.services import mock_data as md
+from app.services.ibm import GraniteClient
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+# ── Models ────────────────────────────────────────────────────────────────────
+
+class ReportGenerateRequest(BaseModel):
+    report_type: str = Field(
+        ...,
+        pattern="^(analytics_summary|campaign_performance|competitor_analysis|"
+                "sentiment_report|influencer_report|trend_forecast)$",
+    )
+    format: str = Field(..., pattern="^(pdf|excel|csv)$")
+    period: str = Field(default="last_30_days", max_length=64)
+    platforms: Optional[List[str]] = None
+    include_ai_summary: bool = True
+
+
+def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
+    if "_id" in doc:
+        doc["id"] = str(doc.pop("_id"))
+    if "user_id" in doc and isinstance(doc["user_id"], ObjectId):
+        doc["user_id"] = str(doc["user_id"])
+    return doc
+
+
+def _report_display_name(report_type: str) -> str:
+    names = {
+        "analytics_summary": "Analytics Summary",
+        "campaign_performance": "Campaign Performance",
+        "competitor_analysis": "Competitor Analysis",
+        "sentiment_report": "Sentiment Analysis Report",
+        "influencer_report": "Influencer Report",
+        "trend_forecast": "Trend Forecast Report",
+    }
+    return names.get(report_type, report_type.replace("_", " ").title())
+
+
+def _generate_csv(report_type: str, period: str) -> bytes:
+    """Generate a realistic CSV export for the given report type."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    if report_type == "analytics_summary":
+        writer.writerow(["Platform", "Followers", "Engagement Rate", "Reach", "Posts", "Growth %"])
+        for platform, stats in md.PLATFORM_OVERVIEW["platforms"].items():
+            writer.writerow([
+                platform.capitalize(),
+                stats["followers"],
+                f"{stats['engagement']}%",
+                stats["reach"],
+                stats["posts"],
+                f"{stats['growth']}%",
+            ])
+    elif report_type == "campaign_performance":
+        writer.writerow(["Campaign", "Status", "Budget", "Spent", "CTR", "ROAS", "Impressions"])
+        for c in md.CAMPAIGNS:
+            writer.writerow([
+                c["name"], c["status"], f"${c['budget']:,.0f}", f"${c['spent']:,.0f}",
+                f"{c['metrics']['ctr']}%", c["metrics"]["roas"], c["metrics"]["impressions"],
+            ])
+    elif report_type == "sentiment_report":
+        writer.writerow(["Platform", "Sentiment Score", "Label", "Positive %", "Neutral %", "Negative %"])
+        for platform, data in md.SENTIMENT_DATA["platform_sentiment"].items():
+            writer.writerow([
+                platform.capitalize(), data["score"], data["label"],
+                md.SENTIMENT_DATA["breakdown"]["positive"],
+                md.SENTIMENT_DATA["breakdown"]["neutral"],
+                md.SENTIMENT_DATA["breakdown"]["negative"],
+            ])
+    elif report_type == "influencer_report":
+        writer.writerow(["Name", "Handle", "Platform", "Followers", "Engagement %", "AI Score"])
+        for inf in md.INFLUENCERS:
+            writer.writerow([
+                inf["name"], inf["handle"], inf["platform"],
+                inf["followers"], f"{inf['engagement_rate']}%", inf["ai_collaboration_score"],
+            ])
+    elif report_type == "trend_forecast":
+        writer.writerow(["Hashtag", "Category", "Current Volume", "Predicted Volume", "Direction", "Confidence %"])
+        for t in md.TREND_PREDICTIONS:
+            writer.writerow([
+                t["hashtag"], t["category"], t["current_volume"],
+                t["predicted_volume"], t["direction"], f"{t['confidence']}%",
+            ])
+    else:
+        writer.writerow(["Metric", "Value"])
+        writer.writerow(["Total Followers", md.PLATFORM_OVERVIEW["total_followers"]])
+        writer.writerow(["Total Reach", md.PLATFORM_OVERVIEW["total_reach"]])
+        writer.writerow(["Avg Engagement Rate", f"{md.PLATFORM_OVERVIEW['avg_engagement_rate']}%"])
+
+    writer.writerow([])
+    writer.writerow([f"Generated by SocialPulse AI — Period: {period} — IBM Granite powered"])
+    return output.getvalue().encode("utf-8")
+
+
+def _generate_excel(report_type: str, period: str) -> bytes:
+    """Generate an Excel workbook using openpyxl."""
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = _report_display_name(report_type)[:31]
+
+        # Header style
+        header_fill = PatternFill(start_color="6172F3", end_color="6172F3", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+
+        # Re-use CSV logic to get rows, then write to Excel
+        csv_bytes = _generate_csv(report_type, period)
+        rows = list(csv.reader(io.StringIO(csv_bytes.decode("utf-8"))))
+
+        for r_idx, row in enumerate(rows, start=1):
+            for c_idx, val in enumerate(row, start=1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                if r_idx == 1:
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = Alignment(horizontal="center")
+
+        # Auto-size columns
+        for col in ws.columns:
+            max_len = max((len(str(cell.value or "")) for cell in col), default=0)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue()
+
+    except ImportError:
+        # openpyxl not available — fall back to CSV bytes wrapped in xlsx header
+        logger.warning("openpyxl not available, returning CSV as fallback")
+        return _generate_csv(report_type, period)
+
+
+def _generate_pdf(report_type: str, period: str, ai_summary: str) -> bytes:
+    """Generate a PDF report using reportlab."""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import (
+            Paragraph, Spacer, Table, TableStyle, SimpleDocTemplate
+        )
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Title
+        title_style = ParagraphStyle(
+            "Title", parent=styles["Title"],
+            fontSize=20, textColor=colors.HexColor("#6172F3"),
+        )
+        story.append(Paragraph(f"SocialPulse AI — {_report_display_name(report_type)}", title_style))
+        story.append(Spacer(1, 0.3*cm))
+        story.append(Paragraph(f"Period: {period} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
+        story.append(Spacer(1, 0.5*cm))
+
+        # AI Summary section
+        if ai_summary:
+            story.append(Paragraph("AI Executive Summary (IBM Granite 13B)", styles["Heading2"]))
+            story.append(Paragraph(ai_summary, styles["BodyText"]))
+            story.append(Spacer(1, 0.5*cm))
+
+        # Data table
+        story.append(Paragraph("Data", styles["Heading2"]))
+        csv_bytes = _generate_csv(report_type, period)
+        rows = [r for r in csv.reader(io.StringIO(csv_bytes.decode("utf-8"))) if r]
+
+        if rows:
+            tbl = Table(rows[:20], hAlign="LEFT")
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6172F3")),
+                ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+                ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE",   (0, 0), (-1, -1), 8),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7F8FA")]),
+                ("GRID",       (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+                ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]))
+            story.append(tbl)
+
+        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph("Powered by IBM Granite 13B · IBM Watson NLP · SocialPulse AI", styles["Italic"]))
+
+        doc.build(story)
+        return buf.getvalue()
+
+    except ImportError:
+        logger.warning("reportlab not available — returning CSV as fallback")
+        return _generate_csv(report_type, period)
+
+
+# ── GET /reports/ ─────────────────────────────────────────────────────────────
+
+@router.get("/", response_model=List[Dict[str, Any]], summary="List generated reports")
+async def list_reports(
+    current_user: Annotated[UserInDB, Depends(get_active_user)],
+    database=Depends(get_db),
+    limit: int = 20,
+) -> List[Dict[str, Any]]:
+    docs = (
+        await database["reports"]
+        .find({"user_id": ObjectId(current_user.id)})
+        .sort("created_at", -1)
+        .limit(limit)
+        .to_list(length=limit)
+    )
+    return [_serialize(d) for d in docs]
+
+
+# ── POST /reports/generate ────────────────────────────────────────────────────
+
+@router.post(
+    "/generate",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a new PDF, Excel, or CSV report",
+)
+async def generate_report(
+    payload: ReportGenerateRequest,
+    current_user: Annotated[UserInDB, Depends(get_active_user)],
+    database=Depends(get_db),
+) -> Dict[str, Any]:
+    logger.info(
+        "generate-report user=%s type=%s format=%s",
+        current_user.id, payload.report_type, payload.format,
+    )
+
+    # Get AI executive summary if requested
+    ai_summary = ""
+    if payload.include_ai_summary:
+        prompt = (
+            f"Write a concise executive summary for a {_report_display_name(payload.report_type)} "
+            f"covering {payload.period}. Include 3 key insights and 2 recommendations. "
+            f"Keep it professional and data-driven."
+        )
+        ai_summary = await GraniteClient.generate(prompt=prompt, max_tokens=400)
+
+    # Generate the file
+    report_id = str(uuid.uuid4())
+    filename = f"socialpulse_{payload.report_type}_{report_id[:8]}.{payload.format}"
+    filepath = os.path.join(settings.REPORTS_DIR, filename)
+
+    try:
+        os.makedirs(settings.REPORTS_DIR, exist_ok=True)
+        if payload.format == "csv":
+            file_bytes = _generate_csv(payload.report_type, payload.period)
+        elif payload.format == "excel":
+            file_bytes = _generate_excel(payload.report_type, payload.period)
+        else:  # pdf
+            file_bytes = _generate_pdf(payload.report_type, payload.period, ai_summary)
+
+        with open(filepath, "wb") as f:
+            f.write(file_bytes)
+
+        file_size = len(file_bytes)
+        file_status = "ready"
+    except Exception as exc:
+        logger.error("Report file generation failed: %s", exc)
+        filepath = ""
+        file_size = 0
+        file_status = "failed"
+
+    # Persist report record
+    doc: Dict[str, Any] = {
+        "user_id": ObjectId(current_user.id),
+        "name": f"{_report_display_name(payload.report_type)} — {payload.period}",
+        "report_type": payload.report_type,
+        "format": payload.format,
+        "period": payload.period,
+        "platforms": payload.platforms or ["all"],
+        "filepath": filepath,
+        "filename": filename,
+        "file_size_bytes": file_size,
+        "ai_summary": ai_summary,
+        "status": file_status,
+        "created_at": datetime.now(timezone.utc),
+    }
+    result = await database["reports"].insert_one(doc)
+    doc["id"] = str(result.inserted_id)
+    doc["download_url"] = f"/api/v1/reports/{doc['id']}/download"
+
+    return _serialize(doc)
+
+
+# ── GET /reports/{id}/download ────────────────────────────────────────────────
+
+@router.get(
+    "/{report_id}/download",
+    summary="Download a generated report file",
+)
+async def download_report(
+    report_id: str,
+    current_user: Annotated[UserInDB, Depends(get_active_user)],
+    database=Depends(get_db),
+) -> StreamingResponse:
+    if not ObjectId.is_valid(report_id):
+        raise HTTPException(status_code=404, detail="Report not found.")
+
+    doc = await database["reports"].find_one(
+        {"_id": ObjectId(report_id), "user_id": ObjectId(current_user.id)}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Report not found.")
+
+    if doc.get("status") != "ready" or not doc.get("filepath"):
+        raise HTTPException(status_code=422, detail="Report is not ready for download.")
+
+    filepath = doc["filepath"]
+    if not os.path.exists(filepath):
+        # Regenerate on the fly if the file was lost
+        fmt = doc.get("format", "csv")
+        report_type = doc.get("report_type", "analytics_summary")
+        period = doc.get("period", "last_30_days")
+        if fmt == "csv":
+            file_bytes = _generate_csv(report_type, period)
+        elif fmt == "excel":
+            file_bytes = _generate_excel(report_type, period)
+        else:
+            file_bytes = _generate_pdf(report_type, period, doc.get("ai_summary", ""))
+
+        media_types = {"csv": "text/csv", "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "pdf": "application/pdf"}
+        return StreamingResponse(
+            io.BytesIO(file_bytes),
+            media_type=media_types.get(fmt, "application/octet-stream"),
+            headers={"Content-Disposition": f'attachment; filename="{doc["filename"]}"'},
+        )
+
+    media_types = {
+        "csv": "text/csv",
+        "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "pdf": "application/pdf",
+    }
+    fmt = doc.get("format", "csv")
+    return FileResponse(
+        path=filepath,
+        filename=doc.get("filename", "report"),
+        media_type=media_types.get(fmt, "application/octet-stream"),
+    )
+
+
+# ── DELETE /reports/{id} ──────────────────────────────────────────────────────
+
+@router.delete(
+    "/{report_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a report record and file",
+)
+async def delete_report(
+    report_id: str,
+    current_user: Annotated[UserInDB, Depends(get_active_user)],
+    database=Depends(get_db),
+) -> None:
+    if not ObjectId.is_valid(report_id):
+        raise HTTPException(status_code=404, detail="Report not found.")
+    doc = await database["reports"].find_one_and_delete(
+        {"_id": ObjectId(report_id), "user_id": ObjectId(current_user.id)}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    # Clean up file from disk
+    filepath = doc.get("filepath", "")
+    if filepath and os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except OSError as exc:
+            logger.warning("Could not delete report file %s: %s", filepath, exc)
