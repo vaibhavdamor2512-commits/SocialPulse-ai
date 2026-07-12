@@ -43,3 +43,7 @@ Thumbs.db
 
 # ── Docker / misc ────────────────────────────────────────────────────────────
 *.log
+
+# Browser-saved HTML files
+*.html
+*_files/

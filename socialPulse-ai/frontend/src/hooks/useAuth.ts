@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -19,12 +19,20 @@ export function useAuth() {
   const qc = useQueryClient();
   const { setUser, logout: storeLogout } = useStore();
 
-  const hasToken = typeof window !== 'undefined' && !!Cookies.get('access_token');
+  // Track whether there is a token — updated reactively after login/logout
+  const [hasToken, setHasToken] = useState<boolean>(
+    typeof window !== 'undefined' && !!Cookies.get('access_token')
+  );
 
-  const { data: user, isLoading } = useQuery({
+  // Re-check cookie whenever the component mounts (catches post-login navigation)
+  useEffect(() => {
+    setHasToken(!!Cookies.get('access_token'));
+  }, []);
+
+  const { data: user, isLoading, isFetching } = useQuery({
     queryKey: QUERY_KEYS.me,
     queryFn: authApi.me,
-    // Only run when there is a token in the cookie — avoids a 401 on every page load
+    // Only run when there is a token — avoids a 401 on every page load
     enabled: hasToken,
     retry: 0,
     staleTime: 5 * 60 * 1000,
@@ -122,7 +130,8 @@ export function useAuth() {
 
   return {
     user,
-    isLoading,
+    // Consider loading while the query is fetching OR while we have a token but no user yet
+    isLoading: isLoading || (hasToken && isFetching && !user),
     isAuthenticated: !!user,
     login: loginMutation.mutateAsync,
     signup: signupMutation.mutateAsync,

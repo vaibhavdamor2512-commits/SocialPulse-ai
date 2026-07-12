@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { useSidebarCollapsed } from '@/store';
+import { useSidebarCollapsed, useStore } from '@/store';
 import { HEADER_HEIGHT, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -23,23 +23,27 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const collapsed = useSidebarCollapsed();
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
   const { user, isLoading } = useAuth();
+  // Persisted user from Zustand — available instantly without waiting for /me
+  const persistedUser = useStore((s) => s.user);
   const router = useRouter();
 
   useEffect(() => {
-    // If auth check is done and there is no user, send to login
-    if (!isLoading && !user) {
+    // Only redirect when auth check is fully done AND no user in both query and store
+    if (!isLoading && !user && !persistedUser) {
       router.replace('/login');
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user, persistedUser, router]);
 
-  // Show spinner while verifying the session
-  // (isLoading=true means the /me request is in-flight; user=null with isLoading=false means unauthenticated)
-  if (isLoading) {
+  // Use persisted user as fast-path — avoids spinner flash on navigation
+  const resolvedUser = user ?? persistedUser;
+
+  // Show spinner only while loading AND no cached user available
+  if (isLoading && !resolvedUser) {
     return <FullPageSpinner />;
   }
 
-  if (!user) {
-    // Redirect is handled in the useEffect above; show spinner while it fires
+  if (!resolvedUser) {
+    // Redirect fires in useEffect — show spinner while it navigates
     return <FullPageSpinner />;
   }
 
