@@ -5,6 +5,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
 
     /* ── Strict type checking ─────────────────────────────────────────────── */
     "strict": true,
@@ -30,18 +31,31 @@
     /* ── Path aliases ─────────────────────────────────────────────────────── */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/store/*": ["./src/store/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/styles/*": ["./src/styles/*"]
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/types/*": ["src/types/*"],
+      "@/store/*": ["src/store/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@/styles/*": ["src/styles/*"]
     },
 
     /* ── Next.js plugin ──────────────────────────────────────────────────── */
-    "plugins": [{ "name": "next" }]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+
+  "exclude": [
+    "node_modules"
+  ]
 }

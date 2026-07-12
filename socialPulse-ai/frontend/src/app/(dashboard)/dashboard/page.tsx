@@ -14,6 +14,7 @@ import { RefreshCw, LayoutDashboard } from 'lucide-react';
 
 import { analyticsApi }   from '@/lib/api';
 import { QUERY_KEYS }     from '@/lib/constants';
+import type { TrendingHashtag } from '@/types';
 import {
   mockAnalyticsOverview,
   mockSentiment,
@@ -80,7 +81,7 @@ export default function DashboardPage() {
 
   const overviewData  = overview.data  ?? mockAnalyticsOverview;
   const sentimentData = sentiment.data ?? mockSentiment;
-  const hashtagData   = hashtags.data?.hashtags ?? [];
+  const hashtagData   = (hashtags.data?.hashtags ?? []) as TrendingHashtag[];
 
   return (
     <motion.div

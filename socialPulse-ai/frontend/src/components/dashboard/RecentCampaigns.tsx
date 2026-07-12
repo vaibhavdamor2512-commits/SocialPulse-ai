@@ -62,7 +62,12 @@ export function RecentCampaigns({ data, loading }: Props) {
             )
             : campaigns.map((c) => {
               const budgetPct = c.budget > 0 ? Math.round((c.spent / c.budget) * 100) : 0;
-              const { label, variant } = STATUS_CONFIG[c.status];
+              const statusConfig = STATUS_CONFIG[c.status] ?? {
+  label: c.status || "Unknown",
+  variant: "secondary",
+};
+
+const { label, variant } = statusConfig;
 
               return (
                 <div key={c.id} className="py-3 group">

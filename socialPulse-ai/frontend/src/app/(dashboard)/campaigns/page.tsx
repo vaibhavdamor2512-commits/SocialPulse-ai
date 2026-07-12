@@ -68,7 +68,7 @@ const FORM_TEMPLATE = {
 function CampaignPage() {
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [selectedCampaign, _setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +79,7 @@ function CampaignPage() {
 
   const campaignsQuery = useQuery({
     queryKey: QUERY_KEYS.campaigns,
-    queryFn: campaignsApi.list,
+    queryFn: () => campaignsApi.list(),
     placeholderData: mockCampaigns,
     staleTime: 5 * 60 * 1000,
     retry: 1,
@@ -89,7 +89,7 @@ function CampaignPage() {
     mutationFn: (body: Omit<Campaign, 'id' | 'spent' | 'metrics' | 'ai_score' | 'created_at'>) =>
       campaignsApi.create(body),
     onSuccess: () => {
-      queryClient.invalidateQueries(QUERY_KEYS.campaigns);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.campaigns });
       toast.success('Campaign created successfully.');
       setCreateOpen(false);
       setCreateForm(FORM_TEMPLATE);
@@ -130,7 +130,7 @@ function CampaignPage() {
   const pagedCampaigns = filteredCampaigns.slice(pageStart, pageStart + PAGE_SIZE);
   const allSelected = pagedCampaigns.length > 0 && pagedCampaigns.every((navCampaign) => selectedIds.includes(navCampaign.id));
 
-  const toggleSelectAll = () => {
+  const _toggleSelectAll = () => {
     if (allSelected) {
       setSelectedIds([]);
       return;
@@ -198,13 +198,10 @@ function CampaignPage() {
       status: 'draft',
       objective: createForm.objective as CampaignObjective,
       budget: Number(createForm.budget),
-      spent: 0,
       start_date: createForm.start_date,
       end_date: createForm.end_date,
       platforms: [createForm.platforms as Campaign['platforms'][number]],
       target_audience: createForm.target_audience,
-      metrics: { ctr: 0, roas: 0, impressions: 0, clicks: 0 },
-      ai_score: 0,
     });
   };
 

@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -18,7 +18,6 @@ export function useAuth() {
   const qc = useQueryClient();
   const { setUser, logout: storeLogout } = useStore();
 
-  // Fetch current user if token present
   const { data: user, isLoading } = useQuery({
     queryKey: QUERY_KEYS.me,
     queryFn: authApi.me,
@@ -26,40 +25,83 @@ export function useAuth() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Keep Zustand in sync
-  if (user) setUser(user);
+  useEffect(() => {
+    if (user) {
+      setUser(user);
+    }
+  }, [user, setUser]);
 
-  // Login mutation
   const loginMutation = useMutation({
     mutationFn: authApi.login,
+
     onSuccess: async (tokens) => {
-      setTokens(tokens);
-      const me = await authApi.me();
-      setUser(me);
-      qc.setQueryData(QUERY_KEYS.me, me);
-      router.push('/dashboard');
+      try {
+        console.log('Login successful:', tokens);
+
+        setTokens(tokens);
+
+        const me = await authApi.me();
+
+        setUser(me);
+        qc.setQueryData(QUERY_KEYS.me, me);
+
+        toast.success('Login successful');
+
+        router.push('/dashboard');
+      } catch (err) {
+        console.error('Post-login error:', err);
+
+        toast.error(
+          'Login succeeded, but fetching your profile failed. Check the browser console.'
+        );
+      }
     },
-    onError: () => {
-      toast.error('Invalid email or password.');
+
+    onError: (err: any) => {
+      console.error('Login API error:', err);
+
+      const message =
+        err?.response?.data?.detail ??
+        err?.message ??
+        'Login failed';
+
+      toast.error(message);
     },
   });
 
-  // Signup mutation
   const signupMutation = useMutation({
     mutationFn: authApi.signup,
+
     onSuccess: async (_user, vars) => {
-      const tokens = await authApi.login({ email: vars.email, password: vars.password });
-      setTokens(tokens);
-      const me = await authApi.me();
-      setUser(me);
-      qc.setQueryData(QUERY_KEYS.me, me);
-      router.push('/dashboard');
-      toast.success('Account created! Welcome to SocialPulse AI.');
+      try {
+        const tokens = await authApi.login({
+          email: vars.email,
+          password: vars.password,
+        });
+
+        setTokens(tokens);
+
+        const me = await authApi.me();
+
+        setUser(me);
+        qc.setQueryData(QUERY_KEYS.me, me);
+
+        toast.success('Account created successfully!');
+
+        router.push('/dashboard');
+      } catch (err) {
+        console.error(err);
+        toast.error('Signup succeeded but automatic login failed.');
+      }
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { detail?: string } } })
-        ?.response?.data?.detail ?? 'Sign up failed. Please try again.';
-      toast.error(typeof msg === 'string' ? msg : 'Sign up failed.');
+
+    onError: (err: any) => {
+      const message =
+        err?.response?.data?.detail ??
+        err?.message ??
+        'Signup failed';
+
+      toast.error(message);
     },
   });
 

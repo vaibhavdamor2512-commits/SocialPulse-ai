@@ -5,11 +5,11 @@ Async MongoDB connection management using Motor.
 Exposes a module-level `db` reference used by all routers.
 """
 
+import asyncio
 import logging
 from typing import Optional
 
 import motor.motor_asyncio
-from pymongo import IndexModel, ASCENDING, DESCENDING
 from pymongo.errors import ConnectionFailure
 
 from app.core.config import settings
@@ -22,19 +22,33 @@ db: Optional[motor.motor_asyncio.AsyncIOMotorDatabase] = None  # type: ignore[ty
 
 
 async def connect_db() -> None:
-    """Open the Motor connection and verify it with a ping."""
+    """Open the Motor connection and verify it with a ping (8 s hard timeout)."""
     global _client, db
-    logger.info("Connecting to MongoDB at %s …", settings.MONGODB_URL)
+    logger.info("Connecting to MongoDB …")
     _client = motor.motor_asyncio.AsyncIOMotorClient(
         settings.MONGODB_URL,
         maxPoolSize=settings.MONGODB_MAX_CONNECTIONS,
         minPoolSize=settings.MONGODB_MIN_CONNECTIONS,
-        serverSelectionTimeoutMS=5000,
+        serverSelectionTimeoutMS=6000,
+        connectTimeoutMS=6000,
+        socketTimeoutMS=6000,
     )
     db = _client[settings.MONGODB_DB_NAME]
-    # Verify connection
-    await _client.admin.command("ping")
-    logger.info("MongoDB connected — database: '%s'", settings.MONGODB_DB_NAME)
+    # Hard asyncio timeout so a bad password / network never hangs the server
+    try:
+        await asyncio.wait_for(_client.admin.command("ping"), timeout=8.0)
+        logger.info("MongoDB connected — database: '%s'", settings.MONGODB_DB_NAME)
+    except asyncio.TimeoutError:
+        logger.error(
+            "MongoDB ping timed out after 8 s. "
+            "Check MONGODB_URL and password in backend/.env — server will start but DB ops will fail."
+        )
+    except Exception as exc:
+        logger.error(
+            "MongoDB connection failed: %s — "
+            "Check MONGODB_URL and password in backend/.env — server will start but DB ops will fail.",
+            exc,
+        )
 
 
 async def close_db() -> None:

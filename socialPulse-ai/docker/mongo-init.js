@@ -1,3 +1,4 @@
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  SocialPulse AI — MongoDB Initialisation Script
 //  Runs once when the mongo container is first created.

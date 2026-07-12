@@ -9,14 +9,15 @@ import { QUERY_KEYS } from '@/lib/constants';
 import { containerVariants, itemVariants } from '@/lib/motion';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import type { TrendPrediction } from '@/types';
 
-const MOCK_TRENDS = [
-  { hashtag: '#AIContent',       category: 'Technology', current_volume: 12_400, predicted_volume: 18_600, confidence: 87, direction: 'up'     as const },
-  { hashtag: '#ShortFormVideo',  category: 'Media',      current_volume: 45_200, predicted_volume: 62_000, confidence: 92, direction: 'up'     as const },
-  { hashtag: '#CommunityFirst',  category: 'Community',  current_volume: 15_600, predicted_volume: 19_200, confidence: 78, direction: 'up'     as const },
-  { hashtag: '#SustainableBrand',category: 'Brand',      current_volume: 8_900,  predicted_volume: 6_800,  confidence: 74, direction: 'down'   as const },
-  { hashtag: '#VoiceSearch',     category: 'SEO',        current_volume: 3_200,  predicted_volume: 3_300,  confidence: 65, direction: 'stable' as const },
-  { hashtag: '#DataDriven',      category: 'Analytics',  current_volume: 9_800,  predicted_volume: 13_100, confidence: 83, direction: 'up'     as const },
+const MOCK_TRENDS: TrendPrediction[] = [
+  { hashtag: '#AIContent',       category: 'Technology', current_volume: 12_400, predicted_volume: 18_600, confidence: 87, direction: 'up',     weeks: [12400,13800,14900,15800,17200,18600], peak_day: 'Tuesday',   related_hashtags: ['#GenerativeAI','#AIMarketing'] },
+  { hashtag: '#ShortFormVideo',  category: 'Media',      current_volume: 45_200, predicted_volume: 62_000, confidence: 92, direction: 'up',     weeks: [45200,47800,51000,54200,57800,62000], peak_day: 'Friday',    related_hashtags: ['#Reels','#VideoContent'] },
+  { hashtag: '#CommunityFirst',  category: 'Community',  current_volume: 15_600, predicted_volume: 19_200, confidence: 78, direction: 'up',     weeks: [15600,16400,17100,17800,18600,19200], peak_day: 'Thursday',  related_hashtags: ['#Community','#BuildInPublic'] },
+  { hashtag: '#SustainableBrand',category: 'Brand',      current_volume: 8_900,  predicted_volume: 6_800,  confidence: 74, direction: 'down',   weeks: [8900,8600,8200,7900,7500,6800],       peak_day: 'Wednesday', related_hashtags: ['#GreenMarketing','#ESG'] },
+  { hashtag: '#VoiceSearch',     category: 'SEO',        current_volume: 3_200,  predicted_volume: 3_300,  confidence: 65, direction: 'stable', weeks: [3200,3180,3210,3190,3170,3300],       peak_day: 'Monday',    related_hashtags: ['#SEO','#VoiceMarketing'] },
+  { hashtag: '#DataDriven',      category: 'Analytics',  current_volume: 9_800,  predicted_volume: 13_100, confidence: 83, direction: 'up',     weeks: [9800,10400,11200,11900,12500,13100],   peak_day: 'Tuesday',   related_hashtags: ['#Analytics','#DataScience'] },
 ];
 
 const DIRECTION_BADGE: Record<string, 'green' | 'pink' | 'default'> = {

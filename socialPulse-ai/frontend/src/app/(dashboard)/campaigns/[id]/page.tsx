@@ -4,14 +4,14 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Edit3, Trash2, Download, Pause, Play, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Edit3, Trash2, Download, Pause, Play } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { campaignsApi } from '@/lib/api';
 import { QUERY_KEYS } from '@/lib/constants';
 import { mockCampaigns } from '@/lib/mockData';
 import { containerVariants, itemVariants } from '@/lib/motion';
-import { formatCurrency, formatDate, formatDateRange, formatNumber, formatPercent, platformLabel } from '@/lib/utils';
+import { formatCurrency, formatDateRange, formatNumber, formatPercent, platformLabel } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -32,7 +32,7 @@ const OBJECTIVES: Record<CampaignObjective, string> = {
   traffic: 'Traffic',
 };
 
-const STATUS_OPTIONS: Array<{ value: CampaignStatus; label: string }> = [
+const _STATUS_OPTIONS: Array<{ value: CampaignStatus; label: string }> = [
   { value: 'draft', label: 'Draft' },
   { value: 'scheduled', label: 'Scheduled' },
   { value: 'active', label: 'Active' },
@@ -79,7 +79,7 @@ function CampaignDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (body: Partial<Campaign>) => campaignsApi.update(campaignId, body),
     onSuccess: (updated) => {
-      queryClient.invalidateQueries(QUERY_KEYS.campaigns);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.campaigns });
       queryClient.setQueryData(QUERY_KEYS.campaign(campaignId), updated);
       toast.success('Campaign updated successfully.');
       setEditOpen(false);
@@ -92,7 +92,7 @@ function CampaignDetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => campaignsApi.delete(campaignId),
     onSuccess: () => {
-      queryClient.invalidateQueries(QUERY_KEYS.campaigns);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.campaigns });
       toast.success('Campaign deleted successfully.');
       router.push('/campaigns');
     },
@@ -134,7 +134,7 @@ function CampaignDetailPage() {
     });
   };
 
-  const isLoading = campaignQuery.isLoading || updateMutation.isLoading || deleteMutation.isLoading;
+  const isLoading = campaignQuery.isLoading || updateMutation.isPending || deleteMutation.isPending;
 
   if (!campaign && !campaignQuery.isLoading) {
     return (

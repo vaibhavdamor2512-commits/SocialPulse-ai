@@ -39,7 +39,7 @@ export const apiClient: AxiosInstance = axios.create({
   timeout: 30_000,
 });
 
-// ── Request interceptor — inject JWT ──────────────────────────────────────────
+// ── Request interceptor — inject JWT ─────────────────────────────────────────
 apiClient.interceptors.request.use((config) => {
   const token = Cookies.get('access_token');
   if (token) {
@@ -65,8 +65,8 @@ apiClient.interceptors.response.use(
 
 // ── Token helpers ──────────────────────────────────────────────────────────────
 export function setTokens(tokens: TokenResponse): void {
-  Cookies.set('access_token',  tokens.access_token,  { expires: 1 / 24, sameSite: 'Strict' });
-  Cookies.set('refresh_token', tokens.refresh_token, { expires: 7,      sameSite: 'Strict' });
+  Cookies.set('access_token',  tokens.access_token,  { expires: 1 / 24, sameSite: 'Lax' });
+  Cookies.set('refresh_token', tokens.refresh_token, { expires: 7,      sameSite: 'Lax' });
 }
 
 export function clearTokens(): void {

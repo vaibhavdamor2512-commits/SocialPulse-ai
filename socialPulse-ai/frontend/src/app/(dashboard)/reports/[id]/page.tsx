@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -44,7 +43,7 @@ export default function ReportDetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => reportsApi.delete(reportId),
     onSuccess: () => {
-      queryClient.invalidateQueries(QUERY_KEYS.reports);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reports });
       toast.success('Report deleted.');
       router.push('/reports');
     },
@@ -54,7 +53,7 @@ export default function ReportDetailPage() {
   });
 
   const report = reportQuery.data;
-  const isLoading = reportQuery.isLoading || deleteMutation.isLoading;
+  const isLoading = reportQuery.isLoading || deleteMutation.isPending;
 
   if (!report && !reportQuery.isLoading) {
     return (

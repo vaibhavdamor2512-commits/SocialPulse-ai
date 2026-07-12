@@ -127,7 +127,7 @@ export default function ReportsPage() {
   const generateMutation = useMutation({
     mutationFn: (body: typeof FORM_TEMPLATE) => reportsApi.generate(body),
     onSuccess: (newReport) => {
-      queryClient.invalidateQueries(QUERY_KEYS.reports);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reports });
       setAddedReports((prev) => [{ ...newReport, status: 'generating' }, ...prev]);
       toast.success('Report generation started.');
       setCreateOpen(false);
@@ -141,7 +141,7 @@ export default function ReportsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => reportsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(QUERY_KEYS.reports);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reports });
       toast.success('Report deleted successfully.');
     },
     onError: () => {

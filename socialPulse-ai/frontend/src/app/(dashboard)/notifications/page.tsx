@@ -6,8 +6,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Bell,
-  CheckCircle2,
-  Trash2,
   RefreshCw,
   Sparkles,
   ArrowRight,
@@ -18,9 +16,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-import { authApi, notificationsApi } from '@/lib/api';
+import { authApi } from '@/lib/api';
 import { QUERY_KEYS } from '@/lib/constants';
-import { mockNotifications } from '@/lib/mockData';
 import { containerVariants, itemVariants } from '@/lib/motion';
 import {
   capitalize,
@@ -42,8 +39,9 @@ import type { Notification, NotificationPrefs, NotificationsResponse } from '@/t
 const PAGE_SIZE = 8;
 const VIEW_FILTERS = ['all', 'unread', 'read'] as const;
 const SEVERITY_FILTERS = ['all', 'info', 'warning', 'success', 'error'] as const;
+type SeverityFilter = typeof SEVERITY_FILTERS[number];
 
-const NOTIFICATION_PRESETS: Record<string, { label: string; variant: 'indigo' | 'orange' | 'green' | 'pink' | 'sky' }> = {
+const NOTIFICATION_PRESETS: Record<string, { label: string; variant: 'indigo' | 'orange' | 'green' | 'pink' | 'sky' | 'default' }> = {
   all: { label: 'All', variant: 'default' },
   unread: { label: 'Unread', variant: 'indigo' },
   read: { label: 'Read', variant: 'sky' },
@@ -156,7 +154,7 @@ export default function NotificationsPage() {
   const isAnySelected = selectedIds.length > 0;
 
   const updatePrefsMutation = useMutation({
-    mutationFn: (body: Partial<NotificationPrefs>) => authApi.updateMe({ notification_prefs: body } as any),
+    mutationFn: (body: Partial<NotificationPrefs>) => authApi.updateMe({ notification_prefs: body as NotificationPrefs }),
     onSuccess: (updatedUser) => {
       if (updatedUser) {
         setUser(updatedUser);
@@ -363,7 +361,7 @@ export default function NotificationsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="indigo" size="sm">{densityLabel}</Badge>
                 {hasUnread && (
-                  <Button size="sm" variant="ghost" onClick={markAllRead}>
+                  <Button size="sm" variant="ghost" onClick={() => markAllRead()}>
                     Mark all read
                   </Button>
                 )}

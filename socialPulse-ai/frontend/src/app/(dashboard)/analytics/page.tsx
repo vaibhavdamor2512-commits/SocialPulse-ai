@@ -35,17 +35,19 @@ import { PlatformComparison }   from '@/components/analytics/PlatformComparison'
 import { PeriodSelector, type Period } from '@/components/analytics/PeriodSelector';
 
 // ── Mock hashtag data (mirrors backend shape) ─────────────────────────────────
-const MOCK_HASHTAGS = [
-  { tag: '#AIContent',        posts: 12_400, reach: 142_000, trend: 'up'     as const, pct_change: 34  },
-  { tag: '#ShortFormVideo',   posts: 45_200, reach: 380_000, trend: 'up'     as const, pct_change: 22  },
-  { tag: '#CommunityFirst',   posts: 15_600, reach: 95_000,  trend: 'up'     as const, pct_change: 15  },
-  { tag: '#SustainableBrand', posts: 8_900,  reach: 62_000,  trend: 'down'   as const, pct_change: -8  },
-  { tag: '#VoiceSearch',      posts: 3_200,  reach: 28_000,  trend: 'stable' as const, pct_change: 1   },
-  { tag: '#DataDriven',       posts: 9_800,  reach: 71_000,  trend: 'up'     as const, pct_change: 11  },
-  { tag: '#GrowthHacking',    posts: 7_400,  reach: 55_000,  trend: 'up'     as const, pct_change: 7   },
-  { tag: '#ContentStrategy',  posts: 11_200, reach: 84_000,  trend: 'stable' as const, pct_change: 2   },
-  { tag: '#InfluencerMktg',   posts: 6_700,  reach: 48_000,  trend: 'down'   as const, pct_change: -4  },
-  { tag: '#BrandStorytelling',posts: 5_400,  reach: 39_000,  trend: 'up'     as const, pct_change: 18  },
+import type { TrendingHashtag } from '@/types';
+
+const MOCK_HASHTAGS: TrendingHashtag[] = [
+  { tag: '#AIContent',        posts: 12_400, reach: 142_000, trend: 'up',     pct_change: 34  },
+  { tag: '#ShortFormVideo',   posts: 45_200, reach: 380_000, trend: 'up',     pct_change: 22  },
+  { tag: '#CommunityFirst',   posts: 15_600, reach: 95_000,  trend: 'up',     pct_change: 15  },
+  { tag: '#SustainableBrand', posts: 8_900,  reach: 62_000,  trend: 'down',   pct_change: -8  },
+  { tag: '#VoiceSearch',      posts: 3_200,  reach: 28_000,  trend: 'stable', pct_change: 1   },
+  { tag: '#DataDriven',       posts: 9_800,  reach: 71_000,  trend: 'up',     pct_change: 11  },
+  { tag: '#GrowthHacking',    posts: 7_400,  reach: 55_000,  trend: 'up',     pct_change: 7   },
+  { tag: '#ContentStrategy',  posts: 11_200, reach: 84_000,  trend: 'stable', pct_change: 2   },
+  { tag: '#InfluencerMktg',   posts: 6_700,  reach: 48_000,  trend: 'down',   pct_change: -4  },
+  { tag: '#BrandStorytelling',posts: 5_400,  reach: 39_000,  trend: 'up',     pct_change: 18  },
 ];
 
 // ── Tab config ────────────────────────────────────────────────────────────────
@@ -97,7 +99,7 @@ export default function AnalyticsPage() {
 
   const overviewData   = overview.data   ?? mockAnalyticsOverview;
   const sentimentData  = sentiment.data  ?? mockSentiment;
-  const hashtagList    = hashtags.data?.hashtags ?? MOCK_HASHTAGS;
+  const hashtagList    = (hashtags.data?.hashtags ?? MOCK_HASHTAGS) as import('@/types').TrendingHashtag[];
   const postingData    = postingTimes.data?.posting_times;
 
   const isRefreshing   = overview.isFetching || sentiment.isFetching;

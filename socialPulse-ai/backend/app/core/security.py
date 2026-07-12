@@ -3,8 +3,8 @@ app/core/security.py
 ────────────────────
 JWT creation/verification and password hashing utilities.
 
-Uses the `bcrypt` library directly (rather than passlib) to avoid the
-passlib 1.7.x / bcrypt 4.x incompatibility where passlib calls
+Uses the `bcrypt` library directly (not passlib) because passlib 1.7.4
+is incompatible with bcrypt 4.x / 5.x — passlib calls
 `_bcrypt.__about__.__version__` which no longer exists.
 """
 

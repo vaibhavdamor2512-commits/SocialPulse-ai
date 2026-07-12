@@ -97,10 +97,12 @@ async def signup(
         password_hash=hash_password(payload.password),
     )
 
+    # Serialise without the `_id` field so MongoDB generates its own ObjectId
+    doc_dict = doc.model_dump(by_alias=True)
+    doc_dict.pop("_id", None)  # always remove — even if Pydantic serialised it as None
+
     try:
-        result = await database["users"].insert_one(
-            doc.model_dump(by_alias=True, exclude={"id"})
-        )
+        result = await database["users"].insert_one(doc_dict)
     except DuplicateKeyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -131,14 +133,28 @@ async def login(
     Authenticate with email + password.
     Returns an **access token** (60 min) and a **refresh token** (7 days).
     """
-    raw = await database["users"].find_one({"email": payload.email.lower().strip()})
+    normalised_login_email = payload.email.lower().strip()
+    raw = await database["users"].find_one({"email": normalised_login_email})
+
+    logger.debug(
+        "LOGIN DEBUG email=%r  user_found=%s  keys=%s",
+        normalised_login_email,
+        raw is not None,
+        list(raw.keys()) if raw else "N/A",
+    )
+
+    # Use a pre-computed real bcrypt hash as the dummy so checkpw() never raises.
+    # This preserves the timing-safe enumeration guard without triggering bcrypt errors.
+    _DUMMY_HASH = "$2b$12$wXKMdNl4RFSEjsz6A9d/eOQKPtX1Y7R3rG8mJv0iN2hL5bZ4cD6Wy"
+    stored_hash = raw["password_hash"] if raw else _DUMMY_HASH
+
+    pw_ok = verify_password(payload.password, stored_hash)
+    logger.debug("LOGIN DEBUG password_ok=%s user_found=%s", pw_ok, raw is not None)
 
     # Use constant-time comparison via verify_password even when user not found
     # (prevents user-enumeration via timing side-channel)
-    dummy_hash = "$2b$12$notarealhashjustpaddingtomakeitlongenoughXXXXXXXXXXXX"
-    stored_hash = raw["password_hash"] if raw else dummy_hash
 
-    if not verify_password(payload.password, stored_hash) or raw is None:
+    if not pw_ok or raw is None:
         logger.warning("Failed login attempt for email=%s", payload.email)
         raise _CREDENTIALS_ERROR
 

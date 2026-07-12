@@ -226,12 +226,23 @@ export default function LoginPage() {
         </p>
         <button
           type="button"
-          onClick={() => {
-            setEmail('demo@socialpulse.ai');
-            setPassword('Demo1234!');
+          onClick={async () => {
+            const demoEmail = 'demo@socialpulse.ai';
+            const demoPassword = 'Demo1234!';
+            setEmail(demoEmail);
+            setPassword(demoPassword);
             setErrors({});
             setServerError('');
-            setTouched({ email: false, password: false });
+            setTouched({ email: true, password: true });
+            try {
+              await login({ email: demoEmail, password: demoPassword });
+            } catch (err: unknown) {
+              const detail = (err as { response?: { data?: { detail?: string } } })
+                ?.response?.data?.detail;
+              setServerError(
+                typeof detail === 'string' ? detail : 'Demo login failed. Please try again.',
+              );
+            }
           }}
           className="w-full text-xs text-text-secondary hover:text-white text-center
                      transition-colors focus:outline-none py-0.5"

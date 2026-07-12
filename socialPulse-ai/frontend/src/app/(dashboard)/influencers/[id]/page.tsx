@@ -91,6 +91,11 @@ export default function InfluencerDetailPage() {
     },
   });
 
+  const recommendations = useMemo<InfluencerRecommendation[]>(
+    () => mockInfluencerRecommendations.filter((item) => item.title && item.title.length > 0),
+    [],
+  );
+
   if (!influencer && !influencersQuery.isLoading) {
     return (
       <div className="py-20 text-center">
@@ -101,11 +106,6 @@ export default function InfluencerDetailPage() {
       </div>
     );
   }
-
-  const recommendations = useMemo<InfluencerRecommendation[]>(
-    () => mockInfluencerRecommendations.filter((item) => item.title && item.title.length > 0),
-    [],
-  );
 
   const openEditModal = () => {
     if (!influencer) return;

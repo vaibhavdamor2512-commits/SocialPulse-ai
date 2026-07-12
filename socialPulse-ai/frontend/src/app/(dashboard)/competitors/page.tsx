@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, RefreshCw, Search, Trash2, Download, ArrowRight, Target } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, Download, Target } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import type { Competitor } from '@/types';
+import type { Competitor as _Competitor } from '@/types';
 
 const PLATFORM_OPTIONS = [
   { value: 'all', label: 'All platforms' },
@@ -28,7 +28,7 @@ const PLATFORM_OPTIONS = [
   { value: 'facebook', label: 'Facebook' },
 ] as const;
 
-const PLATFORM_BADGES: Record<string, 'green' | 'orange' | 'sky' | 'pink'> = {
+const PLATFORM_BADGES: Record<string, 'green' | 'orange' | 'sky' | 'pink' | 'indigo'> = {
   instagram: 'pink',
   twitter: 'sky',
   linkedin: 'indigo',
@@ -62,7 +62,7 @@ export default function CompetitorsPage() {
   const addMutation = useMutation({
     mutationFn: (body: typeof FORM_TEMPLATE) => competitorsApi.add(body),
     onSuccess: () => {
-      queryClient.invalidateQueries(QUERY_KEYS.competitors);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.competitors });
       toast.success('Competitor added to watchlist');
       setAddOpen(false);
       setFormValues(FORM_TEMPLATE);
@@ -374,7 +374,7 @@ export default function CompetitorsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddSubmit} loading={addMutation.isLoading}>Add</Button>
+            <Button onClick={handleAddSubmit} loading={addMutation.isPending}>Add</Button>
           </div>
         </div>
       </Modal>

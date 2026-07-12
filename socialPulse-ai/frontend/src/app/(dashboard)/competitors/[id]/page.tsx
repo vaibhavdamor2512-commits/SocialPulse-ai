@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Download, Target, Sparkles, ShieldCheck, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -12,11 +12,11 @@ import { competitorsApi } from '@/lib/api';
 import { QUERY_KEYS } from '@/lib/constants';
 import { mockCompetitors } from '@/lib/mockData';
 import { containerVariants, itemVariants } from '@/lib/motion';
-import { formatNumber, formatPercent, platformLabel } from '@/lib/utils';
+import { formatNumber, platformLabel } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import type { Competitor, SWOTAnalysis, AIRecommendation } from '@/types';
+import type { SWOTAnalysis, AIRecommendation } from '@/types';
 
 const PLATFORM_BADGES: Record<string, 'green' | 'orange' | 'sky' | 'pink' | 'indigo'> = {
   instagram: 'pink',
