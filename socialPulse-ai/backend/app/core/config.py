@@ -84,6 +84,12 @@ class Settings(BaseSettings):
     WATSON_NLP_API_KEY: str = ""
     WATSON_NLP_VERSION: str = "2022-04-07"
 
+    # ── Instagram / Meta Graph API ──────────────────────────────────────────────
+    META_APP_ID: str = ""
+    META_APP_SECRET: str = ""
+    INSTAGRAM_ACCESS_TOKEN: str = ""
+    INSTAGRAM_BUSINESS_ACCOUNT_ID: str = ""
+
     # ── OAuth ───────────────────────────────────────────────────────────────────
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""

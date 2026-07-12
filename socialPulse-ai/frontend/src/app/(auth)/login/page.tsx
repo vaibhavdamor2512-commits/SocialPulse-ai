@@ -34,8 +34,6 @@ function validate(email: string, password: string): FormErrors {
   }
   if (!password) {
     errors.password = 'Password is required.';
-  } else if (password.length < 6) {
-    errors.password = 'Password must be at least 6 characters.';
   }
   return errors;
 }
@@ -70,12 +68,18 @@ export default function LoginPage() {
     if (Object.keys(errs).length > 0) return;
 
     try {
-      await login({ email: email.trim().toLowerCase(), password });
+      // api.ts normalises email automatically; password is sent as-is
+      await login({ email, password });
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })
-        ?.response?.data?.detail;
+      const axiosErr = err as { response?: { data?: { detail?: string } }; code?: string; message?: string };
+      const isNetworkError = !axiosErr?.response && (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.message === 'Network Error');
+      const detail = axiosErr?.response?.data?.detail;
       setServerError(
-        typeof detail === 'string' ? detail : 'Invalid email or password. Please try again.',
+        isNetworkError
+          ? 'Cannot reach the server. Make sure the backend is running on port 8000.'
+          : typeof detail === 'string'
+            ? detail
+            : 'Invalid email or password. Please try again.',
       );
     }
   };
@@ -237,10 +241,15 @@ export default function LoginPage() {
             try {
               await login({ email: demoEmail, password: demoPassword });
             } catch (err: unknown) {
-              const detail = (err as { response?: { data?: { detail?: string } } })
-                ?.response?.data?.detail;
+              const axiosErr = err as { response?: { data?: { detail?: string } }; code?: string; message?: string };
+              const isNetworkError = !axiosErr?.response && (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.message === 'Network Error');
+              const detail = axiosErr?.response?.data?.detail;
               setServerError(
-                typeof detail === 'string' ? detail : 'Demo login failed. Please try again.',
+                isNetworkError
+                  ? 'Cannot reach the server. Make sure the backend is running on port 8000.'
+                  : typeof detail === 'string'
+                    ? detail
+                    : 'Demo login failed. Please try again.',
               );
             }
           }}

@@ -33,6 +33,7 @@ from app.routers import (
     campaigns,
     competitors,
     influencers,
+    instagram,
     notifications,
     reports,
     trends,
@@ -47,40 +48,51 @@ _DEMO_NAME     = "Demo User"
 
 
 async def _seed_demo_user() -> None:
-    """Create the demo user if it doesn't already exist."""
-    db = get_db()
-    existing = await db["users"].find_one({"email": _DEMO_EMAIL})
-    if existing is not None:
-        _startup_logger.info("Demo user already exists — skipping seed.")
-        return
+    """Create or reset the demo user on every startup so the password is always correct."""
     from datetime import datetime, timezone
-    doc = {
-        "name": _DEMO_NAME,
-        "email": _DEMO_EMAIL,
-        "password_hash": hash_password(_DEMO_PASSWORD),
-        "plan": "free",
-        "avatar_url": None,
-        "connected_platforms": [],
-        "ai_config": {
-            "model": "ibm/granite-13b-instruct-v2",
-            "temperature": 0.7,
-            "language": "en",
-            "max_tokens": 1024,
-        },
-        "notification_prefs": {
-            "email_alerts": True,
-            "viral_predictions": True,
-            "campaign_updates": True,
-            "competitor_alerts": False,
-            "weekly_digest": True,
-        },
-        "is_active": True,
-        "is_verified": True,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
-    await db["users"].insert_one(doc)
-    _startup_logger.info("Demo user created: %s / %s", _DEMO_EMAIL, _DEMO_PASSWORD)
+    db = get_db()
+    fresh_hash = hash_password(_DEMO_PASSWORD)
+    existing = await db["users"].find_one({"email": _DEMO_EMAIL})
+    if existing is None:
+        doc = {
+            "name": _DEMO_NAME,
+            "email": _DEMO_EMAIL,
+            "password_hash": fresh_hash,
+            "plan": "free",
+            "avatar_url": None,
+            "connected_platforms": [],
+            "ai_config": {
+                "model": "ibm/granite-13b-instruct-v2",
+                "temperature": 0.7,
+                "language": "en",
+                "max_tokens": 1024,
+            },
+            "notification_prefs": {
+                "email_alerts": True,
+                "viral_predictions": True,
+                "campaign_updates": True,
+                "competitor_alerts": False,
+                "weekly_digest": True,
+            },
+            "is_active": True,
+            "is_verified": True,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        await db["users"].insert_one(doc)
+        _startup_logger.info("Demo user created: %s / %s", _DEMO_EMAIL, _DEMO_PASSWORD)
+    else:
+        # Always refresh the password hash so stale hashes never block login
+        await db["users"].update_one(
+            {"email": _DEMO_EMAIL},
+            {"$set": {
+                "password_hash": fresh_hash,
+                "is_active": True,
+                "is_verified": True,
+                "updated_at": datetime.now(timezone.utc),
+            }},
+        )
+        _startup_logger.info("Demo user password hash refreshed: %s", _DEMO_EMAIL)
 
 
 # ── Lifespan: startup / shutdown ───────────────────────────────────────────────
@@ -127,6 +139,7 @@ app.include_router(assistant.router,     prefix="/api/v1/assistant",     tags=["
 app.include_router(campaigns.router,     prefix="/api/v1/campaigns",     tags=["Campaigns"])
 app.include_router(competitors.router,   prefix="/api/v1/competitors",   tags=["Competitors"])
 app.include_router(influencers.router,   prefix="/api/v1/influencers",   tags=["Influencers"])
+app.include_router(instagram.router,     prefix="/api/v1/instagram",     tags=["Instagram"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
 app.include_router(reports.router,       prefix="/api/v1/reports",       tags=["Reports"])
 app.include_router(trends.router,        prefix="/api/v1/trends",        tags=["Trends"])

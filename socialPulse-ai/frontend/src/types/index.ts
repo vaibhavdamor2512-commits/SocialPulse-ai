@@ -478,3 +478,33 @@ export interface PaginatedResponse<T> {
   page: number;
   page_size: number;
 }
+
+// ── Instagram ─────────────────────────────────────────────────────────────────
+export interface InstagramProfile {
+  username: string;
+  followers_count: number;
+  media_count: number;
+  profile_picture_url?: string | null;
+  biography?: string;
+  website?: string;
+}
+
+export interface InstagramPost {
+  id: string;
+  caption: string;
+  media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  timestamp: string;
+  like_count: number;
+  comments_count: number;
+  media_url?: string | null;
+  permalink?: string;
+}
+
+export interface InstagramInsights {
+  reach: number;
+  impressions: number;
+  profile_views: number;
+  follower_count_change: number;
+  period: string;
+  raw?: Record<string, Array<{ value: number; end_time: string }>>;
+}

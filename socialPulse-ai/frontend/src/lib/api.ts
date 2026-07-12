@@ -53,9 +53,14 @@ apiClient.interceptors.response.use(
   (res) => res,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      const path = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isAuthPage = path.startsWith('/login') || path.startsWith('/signup') || path === '/';
+      // Only hard-redirect when inside a protected page AND it's not the /auth/me probe
+      const url = (error.config?.url ?? '');
+      const isMeProbe = url.includes('/auth/me');
+      if (!isAuthPage && !isMeProbe) {
+        Cookies.remove('access_token');
+        Cookies.remove('refresh_token');
         window.location.href = '/login';
       }
     }
@@ -83,10 +88,18 @@ export function hasToken(): boolean {
 // Auth
 export const authApi = {
   signup: (body: { name: string; email: string; password: string }) =>
-    apiClient.post<User>('/auth/signup', body).then((r) => r.data),
+    apiClient.post<User>('/auth/signup', {
+      ...body,
+      email: body.email.trim().toLowerCase(),
+      name: body.name.trim(),
+    }).then((r) => r.data),
 
   login: (body: { email: string; password: string }) =>
-    apiClient.post<TokenResponse>('/auth/login', body).then((r) => r.data),
+    // Normalise email only — never trim the password (spaces are valid characters)
+    apiClient.post<TokenResponse>('/auth/login', {
+      email: body.email.trim().toLowerCase(),
+      password: body.password,
+    }).then((r) => r.data),
 
   me: () =>
     apiClient.get<User>('/auth/me').then((r) => r.data),
@@ -238,6 +251,18 @@ export const reportsApi = {
 
   delete: (id: string) =>
     apiClient.delete(`/reports/${id}`),
+};
+
+// Instagram
+export const instagramApi = {
+  profile: () =>
+    apiClient.get<import('@/types').InstagramProfile>('/instagram/profile').then((r) => r.data),
+
+  media: (limit = 20) =>
+    apiClient.get<import('@/types').InstagramPost[]>('/instagram/media', { params: { limit } }).then((r) => r.data),
+
+  insights: (period = 'day') =>
+    apiClient.get<import('@/types').InstagramInsights>('/instagram/insights', { params: { period } }).then((r) => r.data),
 };
 
 // Notifications

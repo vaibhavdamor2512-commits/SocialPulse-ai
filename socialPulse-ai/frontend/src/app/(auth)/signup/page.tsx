@@ -52,10 +52,10 @@ function validate(
     errors.password = 'Password is required.';
   } else if (password.length < 8) {
     errors.password = 'Password must be at least 8 characters.';
-  } else if (!/[A-Z]/.test(password)) {
-    errors.password = 'Include at least one uppercase letter.';
+  } else if (!/[A-Za-z]/.test(password)) {
+    errors.password = 'Password must contain at least one letter.';
   } else if (!/\d/.test(password)) {
-    errors.password = 'Include at least one number.';
+    errors.password = 'Password must contain at least one number.';
   }
 
   if (!confirm) {
@@ -106,7 +106,8 @@ export default function SignupPage() {
     if (Object.keys(errs).length > 0) return;
 
     try {
-      await signup({ name: name.trim(), email: email.trim().toLowerCase(), password });
+      // api.ts handles name trimming and email normalisation
+      await signup({ name, email, password });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })
         ?.response?.data?.detail;

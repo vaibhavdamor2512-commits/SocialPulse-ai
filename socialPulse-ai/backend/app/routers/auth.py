@@ -136,23 +136,12 @@ async def login(
     normalised_login_email = payload.email.lower().strip()
     raw = await database["users"].find_one({"email": normalised_login_email})
 
-    logger.debug(
-        "LOGIN DEBUG email=%r  user_found=%s  keys=%s",
-        normalised_login_email,
-        raw is not None,
-        list(raw.keys()) if raw else "N/A",
-    )
-
-    # Use a pre-computed real bcrypt hash as the dummy so checkpw() never raises.
-    # This preserves the timing-safe enumeration guard without triggering bcrypt errors.
-    _DUMMY_HASH = "$2b$12$wXKMdNl4RFSEjsz6A9d/eOQKPtX1Y7R3rG8mJv0iN2hL5bZ4cD6Wy"
+    # Constant-time guard: always run bcrypt even when user is not found
+    # to prevent user-enumeration via timing side-channel.
+    _DUMMY_HASH = "$2b$12$KIXtoxDCGDPnJHKBBo8LwO3vbGOeZKlnMlKIE5H6z9B8N1rAmr5Yu"
     stored_hash = raw["password_hash"] if raw else _DUMMY_HASH
 
     pw_ok = verify_password(payload.password, stored_hash)
-    logger.debug("LOGIN DEBUG password_ok=%s user_found=%s", pw_ok, raw is not None)
-
-    # Use constant-time comparison via verify_password even when user not found
-    # (prevents user-enumeration via timing side-channel)
 
     if not pw_ok or raw is None:
         logger.warning("Failed login attempt for email=%s", payload.email)

@@ -114,9 +114,10 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        if v.isdigit():
+        import re
+        if not re.search(r"[A-Za-z]", v):
             raise ValueError("Password must contain at least one letter.")
-        if v.isalpha():
+        if not re.search(r"\d", v):
             raise ValueError("Password must contain at least one digit.")
         return v
 
