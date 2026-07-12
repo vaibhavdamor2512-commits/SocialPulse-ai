@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/Badge';
 import type { CampaignStatus } from '@/types';
 
-const STATUS_VARIANT: Record<CampaignStatus, 'green' | 'indigo' | 'orange' | 'pink' | 'default'> = {
+const STATUS_VARIANT: Record<CampaignStatus, 'green' | 'indigo' | 'orange' | 'pink' | 'sky' | 'default'> = {
   draft: 'default',
   scheduled: 'sky',
   active: 'green',

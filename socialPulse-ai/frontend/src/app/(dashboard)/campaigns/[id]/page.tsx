@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -11,13 +11,12 @@ import { campaignsApi } from '@/lib/api';
 import { QUERY_KEYS } from '@/lib/constants';
 import { mockCampaigns } from '@/lib/mockData';
 import { containerVariants, itemVariants } from '@/lib/motion';
-import { formatCurrency, formatDateRange, formatNumber, formatPercent, platformLabel } from '@/lib/utils';
+import { formatCurrency, formatDateRange, formatNumber, formatPercent } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
-import { Badge } from '@/components/ui/Badge';
 import { CampaignProgressBar } from '@/components/campaigns/CampaignProgressBar';
 import { CampaignCalendarView } from '@/components/campaigns/CampaignCalendarView';
 import { CampaignActivityTimeline } from '@/components/campaigns/CampaignActivityTimeline';

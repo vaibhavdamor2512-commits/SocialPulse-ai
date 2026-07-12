@@ -26,7 +26,7 @@ const STACK: StackCard[] = [
     product: 'IBM Granite 13B Instruct v2',
     subtitle: 'Foundation Language Model',
     description:
-      "IBM's enterprise-grade open-source LLM powers every generative AI feature — from campaign strategy to content generation and competitor SWOT synthesis.",
+      "IBM\u2019s enterprise-grade open-source LLM powers every generative AI feature \u2014 from campaign strategy to content generation and competitor SWOT synthesis.",
     capabilities: [
       'AI Assistant chat (RAG)',
       'Campaign strategy generation',
@@ -95,7 +95,7 @@ export function IBMStackSection() {
             The <span className="text-gradient">IBM AI Stack</span>
           </h2>
           <p className="max-w-xl mx-auto text-text-secondary text-base leading-relaxed">
-            No third-party AI providers. Every intelligent feature runs on IBM's enterprise
+            No third-party AI providers. Every intelligent feature runs on IBM&apos;s enterprise
             AI portfolio — Granite, Langflow, and Watson NLP.
           </p>
         </motion.div>

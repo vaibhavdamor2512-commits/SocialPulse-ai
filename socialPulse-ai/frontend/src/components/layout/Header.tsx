@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Bell, LogOut, Settings, User as UserIcon, ChevronDown } from 'lucide-react';
+import { Bell, LogOut, Settings, User as UserIcon, ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils';

@@ -352,7 +352,6 @@ export default function InfluencerDetailPage() {
           <InfluencerAnalyticsCharts
             growthData={influencer?.followers_growth ?? []}
             engagementData={influencer?.engagement_trend ?? []}
-            reachData={influencer?.reach_series ?? []}
             demographics={influencer?.audience_demographics ?? []}
             platformDistribution={influencer?.platform_distribution ?? []}
             loading={influencersQuery.isLoading}

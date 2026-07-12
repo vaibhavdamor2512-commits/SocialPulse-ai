@@ -1,13 +1,12 @@
 'use client';
 
-import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 import { ChartWrapper, CHART_THEME } from '@/components/charts/ChartWrapper';
 import type { InfluencerDemographic, PlatformDistribution, TimeSeriesPoint } from '@/types';
 
 interface Props {
   growthData: TimeSeriesPoint[];
   engagementData: TimeSeriesPoint[];
-  reachData: TimeSeriesPoint[];
   demographics: InfluencerDemographic[];
   platformDistribution: PlatformDistribution[];
   loading?: boolean;
@@ -15,7 +14,7 @@ interface Props {
 
 const COLORS = ['#6172f3', '#a855f7', '#38bdf8', '#f472b6', '#4ade80'];
 
-export function InfluencerAnalyticsCharts({ growthData, engagementData, reachData, demographics, platformDistribution, loading }: Props) {
+export function InfluencerAnalyticsCharts({ growthData, engagementData, demographics, platformDistribution, loading }: Props) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <ChartWrapper height={240} loading={loading} empty={growthData.length === 0}>

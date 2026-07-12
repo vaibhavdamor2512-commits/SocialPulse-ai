@@ -57,18 +57,19 @@ export function useAuth() {
       }
     },
 
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { detail?: string } }; code?: string; message?: string };
       // Clear any stale cached credentials so the form is not stuck
       clearTokens();
       storeLogout();
       qc.removeQueries({ queryKey: QUERY_KEYS.me });
 
       // Network error (server down / CORS) — give a clear message
-      const isNetworkError = !err?.response && (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error');
+      const isNetworkError = !e?.response && (e?.code === 'ERR_NETWORK' || e?.message === 'Network Error');
       const message = isNetworkError
         ? 'Cannot reach the server. Make sure the backend is running on port 8000.'
-        : err?.response?.data?.detail ??
-          err?.message ??
+        : e?.response?.data?.detail ??
+          e?.message ??
           'Invalid email or password. Please try again.';
 
       toast.error(message);
@@ -101,10 +102,11 @@ export function useAuth() {
       }
     },
 
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { detail?: string } }; message?: string };
       const message =
-        err?.response?.data?.detail ??
-        err?.message ??
+        e?.response?.data?.detail ??
+        e?.message ??
         'Signup failed';
 
       toast.error(message);

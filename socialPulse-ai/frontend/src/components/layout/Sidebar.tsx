@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Bot, BarChart3, Rocket, Target,
-  TrendingUp, Star, FileText, Settings, Mail, Bell,
+  TrendingUp, Star, FileText, Settings, Mail,
   ChevronLeft, ChevronRight, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

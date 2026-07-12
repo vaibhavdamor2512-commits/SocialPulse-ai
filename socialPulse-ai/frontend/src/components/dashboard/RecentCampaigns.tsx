@@ -15,11 +15,13 @@ interface Props {
   loading: boolean;
 }
 
-const STATUS_CONFIG: Record<Campaign['status'], { label: string; variant: 'green' | 'indigo' | 'orange' | 'default' }> = {
+const STATUS_CONFIG: Record<Campaign['status'], { label: string; variant: 'green' | 'indigo' | 'orange' | 'sky' | 'pink' | 'default' }> = {
   active:    { label: 'Active',     variant: 'green'   },
   completed: { label: 'Completed',  variant: 'indigo'  },
   paused:    { label: 'Paused',     variant: 'orange'  },
   draft:     { label: 'Draft',      variant: 'default' },
+  scheduled: { label: 'Scheduled',  variant: 'sky'     },
+  cancelled: { label: 'Cancelled',  variant: 'pink'    },
 };
 
 function SkeletonRow() {

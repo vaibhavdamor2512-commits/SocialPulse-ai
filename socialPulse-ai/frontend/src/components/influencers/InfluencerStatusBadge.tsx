@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import type { ReactNode } from 'react';
 
 interface Props {
   status: 'invited' | 'negotiating' | 'active' | 'completed' | 'declined';

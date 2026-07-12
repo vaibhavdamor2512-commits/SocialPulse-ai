@@ -3,7 +3,7 @@
  * Axios HTTP client with JWT injection, token refresh, and typed helpers.
  */
 
-import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
 import type {
   AnalyticsOverview,
@@ -14,7 +14,6 @@ import type {
   Competitor,
   GenerateRequest,
   GenerateResponse,
-  Influencer,
   InfluencerNetwork,
   InfluencerProfile,
   Notification,

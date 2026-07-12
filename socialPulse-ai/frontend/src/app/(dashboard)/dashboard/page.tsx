@@ -207,7 +207,7 @@ export default function DashboardPage() {
                 { icon: Eye,           label: 'Posts',        value: igProfile.data.media_count.toLocaleString() },
                 { icon: Eye,           label: 'Reach (today)',value: (igInsights.data?.reach ?? '—').toLocaleString() },
                 { icon: Eye,           label: 'Impressions',  value: (igInsights.data?.impressions ?? '—').toLocaleString() },
-              ].map(({ icon: Icon, label, value }) => (
+              ].map(({ label, value }) => (
                 <div key={label} className="bg-base-surface rounded-lg p-3 border border-base-border">
                   <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{label}</p>
                   <p className="text-lg font-black text-[#e1306c]">{value}</p>
@@ -229,6 +229,7 @@ export default function DashboardPage() {
                       className="group relative aspect-square rounded-lg overflow-hidden bg-base-surface border border-base-border hover:border-[#e1306c]/50 transition-colors"
                     >
                       {post.media_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={post.media_url}
                           alt={post.caption?.slice(0, 40) ?? 'post'}
