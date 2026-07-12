@@ -56,6 +56,8 @@ Write-Host "    Email:    demo@socialpulse.ai" -ForegroundColor Gray
 Write-Host "    Password: Demo1234!" -ForegroundColor Gray
 Write-Host ""
 
+# Wait a moment for the dev server to start, then open browser
+Start-Sleep -Seconds 4
 Start-Process "http://localhost:3006"
 
 Write-Host "Both servers are running in separate windows." -ForegroundColor Green
