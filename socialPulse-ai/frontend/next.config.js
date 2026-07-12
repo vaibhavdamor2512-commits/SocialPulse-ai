@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ── Output ─────────────────────────────────────────────────────────────────
-  output: 'standalone',           // optimised Docker image
+  // output: 'standalone' is only needed for Docker builds — not for dev
 
   // ── TypeScript ─────────────────────────────────────────────────────────────
   typescript: {

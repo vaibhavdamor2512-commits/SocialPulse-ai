@@ -13,8 +13,8 @@ export const metadata = {
     'AI-powered social media analytics, trend prediction, competitor analysis, and campaign management powered by IBM Granite & Watson NLP.',
 };
 
-export default function RootPage() {
-  const cookieStore = cookies();
+export default async function RootPage() {
+  const cookieStore = await cookies();
   const hasToken = cookieStore.has('access_token');
 
   if (hasToken) {
